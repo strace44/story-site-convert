@@ -2,7 +2,7 @@
 from argparse import ArgumentParser
 from datetime import datetime
 from os import listdir
-from os.path import join as ospj
+from os.path import basename, join as ospj
 import re
 
 import bs4
@@ -24,13 +24,17 @@ def find_html_files(directory):
     return [ospj(directory, filename) for filename in listdir(directory)
         if filename.endswith(HTML_FILE_EXTENSION)]
 
+def looks_like_story_file(s):
+    """
+    :param s: BeautifulSoup object
+    """
+    return s.find('div', {'class': 'nodeCredits'}) is not None
+
 def parse_story_file(filename):
     print('Parsing {}'.format(filename))
-    try:
-        with open(filename) as f:
-            s = bs4.BeautifulSoup(f)
-    except UnicodeDecodeError as e:
-        print(e)
+    with open(filename) as f:
+        s = bs4.BeautifulSoup(f)
+    if not looks_like_story_file(s):
         return
     # The first div with class nodeContents contains the story;
     # the first p element inside here is the actual story text.
@@ -41,7 +45,6 @@ def parse_story_file(filename):
     if m:
         author_name = m.group('name')
         date_data = [int(m.group(field)) for field in AUTHOR_DATE_FIELDS]
-        print('Date data: {!r}'.format(date_data))
         date = datetime(*date_data)
         return Story(story_text, author_name, date)
 
@@ -50,8 +53,16 @@ if __name__ == '__main__':
     p.add_argument('directory')
     args = p.parse_args()
     stories = []
+    bad_encodings = []
     for html_file in find_html_files(args.directory):
-        s = parse_story_file(html_file)
-        if s:
-            stories.append(s)
-    print('Parsed {} stories'.format(len(stories)))
+        try:
+            s = parse_story_file(html_file)
+            if s:
+                stories.append(s)
+        except UnicodeDecodeError:
+            bad_encodings.append(html_file)
+    print('Parsed {} files'.format(len(stories)))
+    print('Encountered character encoding problems with {} files:'.format(
+        len(bad_encodings)))
+    for filename in bad_encodings:
+        print(basename(filename))
