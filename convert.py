@@ -25,10 +25,11 @@ def find_html_files(directory):
 
 def parse_story_file(filename):
     with open(filename) as f:
-        s = bs4.BeautifulSoup(f.read())
+        s = bs4.BeautifulSoup(f)
         # The first div with class nodeContents contains the story;
         # the first p element inside here is the actual story text.
-        story_text = s.find('div', {'class': 'nodeContents'}).p.text
+        story_paragraphs = s.find('div', {'class': 'nodeContents'}).find_all('p')[:-1]
+        story_text = '\n'.join(str(p) for p in story_paragraphs)
         raw_author_data = s.find('div', {'class': 'nodeCredits'}).text
         m = AUTHOR_INFO.match(raw_author_data)
         if m:
