@@ -26,8 +26,12 @@ def find_html_files(directory):
 
 def parse_story_file(filename):
     print('Parsing {}'.format(filename))
-    with open(filename) as f:
-        s = bs4.BeautifulSoup(f)
+    try:
+        with open(filename) as f:
+            s = bs4.BeautifulSoup(f)
+    except UnicodeDecodeError as e:
+        print(e)
+        return
     # The first div with class nodeContents contains the story;
     # the first p element inside here is the actual story text.
     story_paragraphs = s.find('div', {'class': 'nodeContents'}).find_all('p')[:-1]
