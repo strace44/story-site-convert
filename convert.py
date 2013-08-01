@@ -28,7 +28,8 @@ def looks_like_story_file(s):
     """
     :param s: BeautifulSoup object
     """
-    return s.find('div', {'class': 'nodeCredits'}) is not None
+    credits_nodes = s.find_all('div', {'class': 'nodeCredits'})
+    return credits_nodes is not None and len(credits_nodes) == 1
 
 def parse_story_file(filename):
     print('Parsing {}'.format(filename))
@@ -59,7 +60,8 @@ if __name__ == '__main__':
             s = parse_story_file(html_file)
             if s:
                 stories.append(s)
-        except UnicodeDecodeError:
+        except UnicodeDecodeError as e:
+            print(e)
             bad_encodings.append(html_file)
     print('Parsed {} files'.format(len(stories)))
     print('Encountered character encoding problems with {} files:'.format(
