@@ -90,22 +90,17 @@ def parse_story_file(filename):
         date = datetime(*date_data)
         return Story(story_text, author_name, date)
 
+def get_stories(directory):
+    for html_file in find_html_files(directory):
+        s = parse_story_file(html_file)
+        if s:
+            yield s
+
 if __name__ == '__main__':
     p = ArgumentParser()
     p.add_argument('directory')
     args = p.parse_args()
-    stories = []
-    bad_encodings = []
-    for html_file in find_html_files(args.directory):
-        try:
-            s = parse_story_file(html_file)
-            if s:
-                stories.append(s)
-        except UnicodeDecodeError as e:
-            print(e)
-            bad_encodings.append(html_file)
-    print('Parsed {} files'.format(len(stories)))
-    print('Encountered character encoding problems with {} files:'.format(
-        len(bad_encodings)))
-    for filename in bad_encodings:
-        print(basename(filename))
+    i = -1
+    for i, story in enumerate(get_stories(args.directory)):
+        pass
+    print('Parsed {} stories'.format(i + 1))
