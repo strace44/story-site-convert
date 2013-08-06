@@ -23,12 +23,17 @@ class AuthorDict(dict):
         return author
 
 class Story:
-    def __init__(self, text, author, date):
+    def __init__(self, text, title, author, date):
         self.text = text
+        self.title = title
         self.author = author
         self.date = date
         # Stand-in for a database PK
         self.index = None
+
+    def __repr__(self):
+        return '<{} {}: "{}", {}>'.format(self.__class__.__name__,
+            self.author.name, self.title, self.date)
 
 HTML_FILE_EXTENSION = '.html'
 def find_html_files(directory):
@@ -93,13 +98,14 @@ def parse_story_file(filename):
     # the first p element inside here is the actual story text.
     story_paragraphs = s.find('div', {'class': 'nodeContents'}).find_all('p')[:-1]
     story_text = '\n'.join(str(p) for p in story_paragraphs)
+    title = s.find('h2', {'class': 'title'}).text
     raw_author_data = s.find('div', {'class': 'nodeCredits'}).text
     m = AUTHOR_INFO.match(raw_author_data)
     if m:
         author_name = m.group('name')
         date_data = [int(m.group(field)) for field in AUTHOR_DATE_FIELDS]
         date = datetime(*date_data)
-        return Story(story_text, author_name, date)
+        return Story(story_text, title, author_name, date)
 
 def get_stories(directory):
     for html_file in find_html_files(directory):
