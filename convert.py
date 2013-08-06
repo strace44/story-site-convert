@@ -4,14 +4,13 @@ from datetime import datetime
 from os import listdir
 from os.path import basename, join as ospj
 import re
+import unicodedata
 
 import bs4
 
 AUTHOR_INFO = re.compile(r'(?P<name>\w+) \| (?P<month>\d{2})/(?P<day>\d{2})/'
     r'(?P<year>\d{4}) - (?P<hour>\d{2}):(?P<minute>\d{2})')
 AUTHOR_DATE_FIELDS = ['year', 'month', 'day', 'hour', 'minute']
-
-FALLBACK_ENCODING = 'cp1252'
 
 class Story:
     def __init__(self, text, author, date):
@@ -33,30 +32,45 @@ def looks_like_story_file(s):
     credits_nodes = s.find_all('div', {'class': 'nodeCredits'})
     return credits_nodes is not None and len(credits_nodes) == 1
 
-BAD_QUOTE_PATTERN = re.compile(b'\xe2\x80([\x00-\x7f])')
-# TODO this is too strict to match possible encoding problems
-# We might have two cp1252-encoded characters back-to-back
-CP1252_CHAR_PATTERN = re.compile(b'([\x00-\x7f]|\\A)([\x80-\xff])([\x00-\x7f]|\\Z)')
-def decode_repl(match):
-    fixed = match.group(2).decode(FALLBACK_ENCODING).encode()
-    # Use "or b''" since the group data will be None if we're at the
-    # beginning or end of the string
-    return b''.join([match.group(1) or b'', fixed, match.group(3) or b''])
+def safe_unicode_name(char):
+    try:
+        return unicodedata.name(char)
+    except ValueError:
+        return '<no name>'
+
+SURROGATE_ESCAPES = re.compile('([\udc80-\udcff])')
+def surrogate_cp1252_replace(match):
+    surrogate = match.group(1)
+    byte = surrogate.encode(errors='surrogateescape')
+    char = byte.decode('cp1252')
+    print('Replacing raw byte {} with character {} ({})'.format(hex(byte[0]),
+        char, safe_unicode_name(char)))
+    return char
 
 def tolerant_decode(story_data):
     """
     Most story files are valid UTF-8. However, many files have truncated UTF-8
-    sequences for U+201D RIGHT DOUBLE QUOTATION MARK, so add the missing \x9d byte.
+    sequences for U+201D RIGHT DOUBLE QUOTATION MARK, and these will show up
+    as '\udce2\udc80' with the 'surrogateescape' error handler. This is by far
+    the most common encoding problem, so manually replace these sequences with
+    the correct quote character.
 
-    Additionally, the old Drupal site didn't seem to enforce much by way of
-    character encoding, so there are a few other byte sequences that are invalid
-    UTF-8. Decode these as cp1252, then replace those bytes with the UTF-8
-    encoding of those characters. We can then decode the entire byte string
-    as UTF-8.
+    The UTF-8 encoding of U+00E0 LATIN SMALL LETTER A WITH GRAVE also seems to
+    have some problems: the second byte of b'\xc3\xa0' is missing. I have manually
+    verified that the cp1252 interpretation of b'\xc3' doesn't make sense in
+    any of these places, so replace '\udcc3' with '\xe0' also.
+
+    After this, replace any remaining high surrogate characters with the cp1252
+    mapping of that byte.
     """
-    fixed_quotes = BAD_QUOTE_PATTERN.sub(b'\xe2\x80\x9d\\1', story_data)
-    reencoded = CP1252_CHAR_PATTERN.sub(decode_repl, fixed_quotes)
-    return reencoded.decode()
+    raw_decoded = story_data.decode(errors='surrogateescape')
+    fixed_quotes = raw_decoded.replace('\udce2\udc80', '\u201d')
+    fixed_letter_a_grave = fixed_quotes.replace('\udcc3', '\xe0')
+    # No other special cases: replace all surrogate escape chars with
+    # their cp1252 interpretation
+    surrogate_decoded = SURROGATE_ESCAPES.sub(surrogate_cp1252_replace,
+        fixed_letter_a_grave)
+    return surrogate_decoded
 
 def parse_story_file(filename):
     print('Parsing {}'.format(filename))
