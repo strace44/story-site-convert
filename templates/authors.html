@@ -1,7 +1,11 @@
-{% extends base.html %}
+{% extends "base.html" %}
 
 {% block title %}Author List{% endblock %}
 
 {% block body %}
-
-{% endlbock %}
+<ul>
+    {% for i, author_name in authors %}
+        <li><a href="authors/{{ i }}.html">{{ author_name|escape }}</a></li>
+    {% endfor %}
+</ul>
+{% endblock %}
