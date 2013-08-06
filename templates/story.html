@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}{{ story.title|escape }}{% endblock %}
+
+{% block body %}
+<h1>{{ story.title|escape }}</h1>
+<h2><a href="../../authors/{{ i }}.html">{{ story.author.name|escape }}</a></h2>
+<h3>{{ story.date.strftime('%Y%m%d %H%M') }}</h3>
+<div>
+{{ story.text }}
+</div>
+{% endblock %}

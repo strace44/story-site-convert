@@ -161,7 +161,7 @@ def convert_html_files(directory):
         story_data[story.author_name].stories.append(story)
         story.author = story_data[story.author_name]
     for j, author in enumerate(sorted(story_data, key=lambda s: s.lower())):
-        author.index = j
+        story_data[author].index = j
     print('Parsed {} stories by {} authors'.format(i + 1, j + 1))
     return story_data
 
