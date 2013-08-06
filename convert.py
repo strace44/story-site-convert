@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from argparse import ArgumentParser
 from datetime import datetime
+from functools import reduce
 from operator import attrgetter
 from os import listdir, makedirs
 from os.path import isfile, join as ospj
@@ -22,6 +23,7 @@ class Author:
     def __init__(self, name):
         self.name = name
         self.stories = []
+        self.index = None
 
 class AuthorDict(dict):
     def __missing__(self, author_name):
@@ -34,6 +36,7 @@ class Story:
         self.title = title
         self.author_name = author_name
         self.date = date
+        self.author = None
         # Stand-in for a database PK
         self.index = None
 
@@ -124,7 +127,7 @@ class StoryRenderer:
         self.story_data = story_data
         self.env = jinja2.Environment(loader=jinja2.FileSystemLoader('templates'),
             keep_trailing_newline=True)
-        self.sorted_authors = sorted(story_data)
+        self.sorted_authors = sorted(story_data.values(), key=attrgetter('index'))
 
     def render_author_list(self):
         filename = 'authors.html'
@@ -133,13 +136,40 @@ class StoryRenderer:
             print(template.render(authors=enumerate(self.sorted_authors)), file=f)
 
     def render_all_stories(self):
-        pass
+        filename = 'stories_all.html'
+        template = self.env.get_template(filename)
+        stories = []
+        for author in self.story_data.values():
+            stories.extend(author.stories)
+        stories.sort(key=attrgetter('date'))
+        with open(ospj(OUTPUT_DIR, filename), 'w') as f:
+            print(template.render(stories=stories), file=f)
 
     def render_stories_by_author(self):
         pass
 
     def render_story(self, story):
         pass
+
+def convert_html_files(directory):
+ # Maps author names to Author objects, each of which
+    # keeps a list of Story objects
+    story_data = AuthorDict()
+    i = j = -1
+    for i, story in enumerate(get_stories(directory)):
+        story.index = i
+        story_data[story.author_name].stories.append(story)
+        story.author = story_data[story.author_name]
+    for j, author in enumerate(sorted(story_data, key=lambda s: s.lower())):
+        author.index = j
+    print('Parsed {} stories by {} authors'.format(i + 1, j + 1))
+    return story_data
+
+def render_output(story_data):
+    renderer = StoryRenderer(story_data)
+    renderer.render_author_list()
+    renderer.render_all_stories()
+    renderer.render_stories_by_author()
 
 if __name__ == '__main__':
     if isfile(PICKLE_FILENAME):
@@ -150,29 +180,9 @@ if __name__ == '__main__':
         p = ArgumentParser()
         p.add_argument('directory')
         args = p.parse_args()
-        i = -1
-        # Maps author names to Author objects, each of which
-        # keeps a list of Story objects
-        story_data = AuthorDict()
-        for i, story in enumerate(get_stories(args.directory)):
-            story.index = i
-            story_data[story.author_name].stories.append(story)
-        print('Parsed {} stories'.format(i + 1))
+        story_data = convert_html_files(args.directory)
         print('Saving story data to {}'.format(PICKLE_FILENAME))
         with open(PICKLE_FILENAME, 'wb') as f:
             pickle.dump(story_data, f)
     makedirs(OUTPUT_DIR, exist_ok=True)
-    print('Author count: {}'.format(len(story_data)))
-    print('Author names:')
-    authors = sorted(story_data)
-    for i, author in enumerate(authors):
-        print(i, author)
-    print()
-    author = authors[37]
-    print('Stories by {}:'.format(author))
-    for story in sorted(story_data[author].stories, key=attrgetter('date'), reverse=True):
-        print('{!r}'.format(story))
-    renderer = StoryRenderer(story_data)
-    renderer.render_author_list()
-    renderer.render_all_stories()
-    renderer.render_stories_by_author()
+    render_output(story_data)

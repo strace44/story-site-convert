@@ -1,3 +1,16 @@
 {% extends "base.html" %}
 
 {% block title %}All Stories{% endblock %}
+
+{% block body %}
+<table>
+<th><td>Title</td><td>Author</td><td>Date</td></th>
+{% for story in stories %}
+    <tr>
+        <td><a href="stories/{{ story.index }}.html">{{ story.title|escape }}</a></td>
+        <td><a href="authors/{{ i }}.html">{{ author.name|escape }}</a></td>
+        <td>{{ story.date.strftime('%Y%m%d %H%M') }}</td>
+    </tr>
+{% endfor %}
+</table>
+{% endblock %}
