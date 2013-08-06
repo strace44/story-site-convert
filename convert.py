@@ -135,7 +135,7 @@ class StoryRenderer:
         with open(ospj(OUTPUT_DIR, filename), 'w') as f:
             print(template.render(authors=enumerate(self.sorted_authors)), file=f)
 
-    def render_all_stories(self):
+    def render_story_list_all(self):
         filename = 'stories_all.html'
         template = self.env.get_template(filename)
         stories = []
@@ -145,11 +145,22 @@ class StoryRenderer:
         with open(ospj(OUTPUT_DIR, filename), 'w') as f:
             print(template.render(stories=stories), file=f)
 
-    def render_stories_by_author(self):
-        pass
+    def render_story_list_by_author(self, author):
+        subdir = ospj(OUTPUT_DIR, 'authors')
+        makedirs(subdir, exist_ok=True)
+        filename = '{}.html'.format(author.index)
+        template = self.env.get_template('stories_by_author.html')
+        stories = sorted(author.stories, key=attrgetter('date'))
+        with open(ospj(subdir, filename), 'w') as f:
+            print(template.render(author=author, stories=stories), file=f)
 
     def render_story(self, story):
-        pass
+        subdir = ospj(OUTPUT_DIR, 'stories', str(story.author.index))
+        makedirs(subdir, exist_ok=True)
+        filename = '{}.html'.format(story.index)
+        template = self.env.get_template('story.html')
+        with open(ospj(subdir, filename), 'w') as f:
+            print(template.render(story=story), file=f)
 
 def convert_html_files(directory):
  # Maps author names to Author objects, each of which
@@ -166,10 +177,14 @@ def convert_html_files(directory):
     return story_data
 
 def render_output(story_data):
+    # TODO refactor this
     renderer = StoryRenderer(story_data)
     renderer.render_author_list()
-    renderer.render_all_stories()
-    renderer.render_stories_by_author()
+    renderer.render_story_list_all()
+    for author in story_data.values():
+        renderer.render_story_list_by_author(author)
+        for story in author.stories:
+            renderer.render_story(story)
 
 if __name__ == '__main__':
     if isfile(PICKLE_FILENAME):

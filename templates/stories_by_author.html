@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Stories by {{ author|escape }}{% endblock %}
+{% block title %}Stories by {{ author.name|escape }}{% endblock %}
 
 {% block body %}
-<h1>Stories by {{ author|escape }}</h1>
+<h1>Stories by {{ author.name|escape }}</h1>
 <table>
-<th><td>Title</td><td>Date</td></th>
+    <tr><th>Title</th><th>Date</th></tr>
 {% for story in stories %}
     <tr>
         <td><a href="../stories/{{ story.author.index }}/{{ story.index }}.html">{{ story.title|escape }}</a></td>
-        <td>{{ story.date.strftime('%Y%m%d %H%M') }}</td>
+        <td>{{ story.date.strftime('%Y-%m-%d %H:%M') }}</td>
     </tr>
 {% endfor %}
 </table>

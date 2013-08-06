@@ -4,8 +4,8 @@
 
 {% block body %}
 <h1>{{ story.title|escape }}</h1>
-<h2><a href="../../authors/{{ i }}.html">{{ story.author.name|escape }}</a></h2>
-<h3>{{ story.date.strftime('%Y%m%d %H%M') }}</h3>
+<h2><a href="../../authors/{{ story.author.index }}.html">{{ story.author.name|escape }}</a>,
+    {{ story.date.strftime('%Y-%m-%d %H:%M') }}</h2>
 <div>
 {{ story.text }}
 </div>
