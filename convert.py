@@ -133,7 +133,7 @@ class StoryRenderer:
         filename = 'authors.html'
         template = self.env.get_template(filename)
         with open(ospj(OUTPUT_DIR, filename), 'w') as f:
-            print(template.render(authors=enumerate(self.sorted_authors)), file=f)
+            print(template.render(authors=enumerate(self.sorted_authors), depth=0), file=f)
 
     def render_story_list_all(self):
         filename = 'stories_all.html'
@@ -143,7 +143,7 @@ class StoryRenderer:
             stories.extend(author.stories)
         stories.sort(key=attrgetter('date'))
         with open(ospj(OUTPUT_DIR, filename), 'w') as f:
-            print(template.render(stories=stories), file=f)
+            print(template.render(stories=stories, depth=0), file=f)
 
     def render_story_list_by_author(self, author):
         subdir = ospj(OUTPUT_DIR, 'authors')
@@ -152,7 +152,7 @@ class StoryRenderer:
         template = self.env.get_template('stories_by_author.html')
         stories = sorted(author.stories, key=attrgetter('date'))
         with open(ospj(subdir, filename), 'w') as f:
-            print(template.render(author=author, stories=stories), file=f)
+            print(template.render(author=author, stories=stories, depth=1), file=f)
 
     def render_story(self, story):
         subdir = ospj(OUTPUT_DIR, 'stories', str(story.author.index))
@@ -160,7 +160,7 @@ class StoryRenderer:
         filename = '{}.html'.format(story.index)
         template = self.env.get_template('story.html')
         with open(ospj(subdir, filename), 'w') as f:
-            print(template.render(story=story), file=f)
+            print(template.render(story=story, depth=2), file=f)
 
 def convert_html_files(directory):
  # Maps author names to Author objects, each of which

@@ -12,7 +12,7 @@
     {% for story in stories %}
     <tr>
         <td><a href="stories/{{ story.author.index }}/{{ story.index }}.html">{{ story.title|escape }}</a></td>
-        <td><a href="authors/{{ i }}.html">{{ story.author.name|escape }}</a></td>
+        <td><a href="authors/{{ story.author.index }}.html">{{ story.author.name|escape }}</a></td>
         <td>{{ story.date.strftime('%Y-%m-%d %H:%M') }}</td>
     </tr>
     {% endfor %}

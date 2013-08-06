@@ -5,6 +5,10 @@
     <title>{% block title %}Stories{% endblock %}</title>
 </head>
 <body>
+<div>
+    <a href="{% for _ in range(depth) %}../{% endfor %}authors.html">Author List</a>
+    <a href="{% for _ in range(depth) %}../{% endfor %}stories_all.html">All Stories</a>
+</div>
 {% block body %}
 {% endblock %}
 </body>
