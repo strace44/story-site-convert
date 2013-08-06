@@ -2,7 +2,7 @@
 from argparse import ArgumentParser
 from datetime import datetime
 from os import listdir
-from os.path import basename, join as ospj
+from os.path import join as ospj
 import re
 import unicodedata
 
@@ -12,11 +12,23 @@ AUTHOR_INFO = re.compile(r'(?P<name>\w+) \| (?P<month>\d{2})/(?P<day>\d{2})/'
     r'(?P<year>\d{4}) - (?P<hour>\d{2}):(?P<minute>\d{2})')
 AUTHOR_DATE_FIELDS = ['year', 'month', 'day', 'hour', 'minute']
 
+class Author:
+    def __init__(self, name):
+        self.name = name
+        self.stories = []
+
+class AuthorDict(dict):
+    def __missing__(self, author_name):
+        author = self[author_name] = Author(author_name)
+        return author
+
 class Story:
     def __init__(self, text, author, date):
         self.text = text
         self.author = author
         self.date = date
+        # Stand-in for a database PK
+        self.index = None
 
 HTML_FILE_EXTENSION = '.html'
 def find_html_files(directory):
@@ -40,8 +52,7 @@ def safe_unicode_name(char):
 
 SURROGATE_ESCAPES = re.compile('([\udc80-\udcff])')
 def surrogate_cp1252_replace(match):
-    surrogate = match.group(1)
-    byte = surrogate.encode(errors='surrogateescape')
+    byte = match.group(1).encode(errors='surrogateescape')
     char = byte.decode('cp1252')
     print('Replacing raw byte {} with character {} ({})'.format(hex(byte[0]),
         char, safe_unicode_name(char)))
@@ -101,6 +112,11 @@ if __name__ == '__main__':
     p.add_argument('directory')
     args = p.parse_args()
     i = -1
+    # Maps author names to Author objects, each of which
+    # keeps a list of Story objects
+    story_data = AuthorDict()
     for i, story in enumerate(get_stories(args.directory)):
-        pass
+        story.index = i
+        story_data[story.author].stories.append(story)
     print('Parsed {} stories'.format(i + 1))
+    print('Author count: {}'.format(len(story_data)))
