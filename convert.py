@@ -60,7 +60,12 @@ def looks_like_story_file(s):
     :param s: BeautifulSoup object
     """
     credits_nodes = s.find_all('div', {'class': 'nodeCredits'})
-    return credits_nodes is not None and len(credits_nodes) == 1
+    if credits_nodes is None or len(credits_nodes) != 1:
+        return False
+    taxonomy_nodes = s.find_all('div', {'class': 'nodeTaxonomy'})
+    if taxonomy_nodes:
+        return False
+    return True
 
 def safe_unicode_name(char):
     try:
@@ -168,9 +173,11 @@ class StoryRenderer:
 
 def convert_html_files(directory):
     """
-    Maps author names to Author objects, each of which
-    keeps a list of Story objects
+    Parses HTML files found in 'directory', populating
+    internal data structures with the text read from each.
     """
+    # Maps author names to Author objects, each of which
+    # keeps a list of Story objects
     story_data = AuthorDict()
     i = j = -1
     for i, story in enumerate(get_stories(directory)):
