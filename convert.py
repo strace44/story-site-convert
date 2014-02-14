@@ -39,6 +39,9 @@ class Story:
         self.author = None
         # Stand-in for a database PK
         self.index = None
+        # Story objects to support prev/next links in templates
+        self.prev = None
+        self.next = None
 
     def __repr__(self):
         return '<{} {}: "{}", {}>'.format(self.__class__.__name__,
@@ -163,8 +166,10 @@ class StoryRenderer:
             print(template.render(story=story, depth=2), file=f)
 
 def convert_html_files(directory):
- # Maps author names to Author objects, each of which
-    # keeps a list of Story objects
+    """
+    Maps author names to Author objects, each of which
+    keeps a list of Story objects
+    """
     story_data = AuthorDict()
     i = j = -1
     for i, story in enumerate(get_stories(directory)):
@@ -173,6 +178,16 @@ def convert_html_files(directory):
         story.author = story_data[story.author_name]
     for j, author in enumerate(sorted(story_data, key=lambda s: s.lower())):
         story_data[author].index = j
+        # Assign prev/next as appropriate
+        # TODO generalize this to avoid len == 2 vs. len > 2
+        s = story_data[author].stories
+        if len(s) >= 2:
+            s[0].next = s[-1]
+            s[-1].prev = s[0]
+            if len(s) > 2:
+                for prev, cur, next in zip(s[:-2], s[1:-1], s[2:]):
+                    cur.prev = prev
+                    cur.next = next
     print('Parsed {} stories by {} authors'.format(i + 1, j + 1))
     return story_data
 
