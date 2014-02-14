@@ -14,4 +14,7 @@
 <div>
 {{ story.text }}
 </div>
+{% if story.next %}
+	<h3><a href="{{ story.next.index }}.html">Next ({{ story.next.title|escape }})</a></h3>
+{% endif %}
 {% endblock %}

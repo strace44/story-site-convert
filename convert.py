@@ -183,8 +183,8 @@ def convert_html_files(directory):
         # TODO generalize this to avoid len == 2 vs. len > 2
         s = sorted(story_data[author].stories, key=attrgetter('date'))
         if len(s) >= 2:
-            s[0].next = s[-1]
-            s[-1].prev = s[0]
+            s[0].next = s[1]
+            s[-1].prev = s[-2]
             if len(s) > 2:
                 for prev, cur, next in zip(s[:-2], s[1:-1], s[2:]):
                     cur.prev = prev
