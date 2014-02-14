@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from argparse import ArgumentParser
 from datetime import datetime
-from functools import reduce
 from operator import attrgetter
 from os import listdir, makedirs
 from os.path import isfile, join as ospj
@@ -62,8 +61,9 @@ def looks_like_story_file(s):
     credits_nodes = s.find_all('div', {'class': 'nodeCredits'})
     if credits_nodes is None or len(credits_nodes) != 1:
         return False
-    taxonomy_nodes = s.find_all('div', {'class': 'nodeTaxonomy'})
-    if taxonomy_nodes:
+    if s.find_all('div', {'class': 'nodeTaxonomy'}):
+        return False
+    if s.find_all('div', {'class': 'poll'}):
         return False
     return True
 
