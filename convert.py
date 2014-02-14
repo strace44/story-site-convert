@@ -7,6 +7,7 @@ from os import listdir, makedirs
 from os.path import isfile, join as ospj
 import pickle
 import re
+import sys
 import unicodedata
 
 import bs4
@@ -180,7 +181,7 @@ def convert_html_files(directory):
         story_data[author].index = j
         # Assign prev/next as appropriate
         # TODO generalize this to avoid len == 2 vs. len > 2
-        s = story_data[author].stories
+        s = sorted(story_data[author].stories, key=attrgetter('date'))
         if len(s) >= 2:
             s[0].next = s[-1]
             s[-1].prev = s[0]
@@ -213,6 +214,10 @@ if __name__ == '__main__':
         story_data = convert_html_files(args.directory)
         print('Saving story data to {}'.format(PICKLE_FILENAME))
         with open(PICKLE_FILENAME, 'wb') as f:
+            # HACK: the addition of prev/next links in the Story
+            # objects has added a ton of recursion in the pickle
+            # module. Increase the recursion limit to allow this.
+            sys.setrecursionlimit(25000)
             pickle.dump(story_data, f)
     makedirs(OUTPUT_DIR, exist_ok=True)
     render_output(story_data)

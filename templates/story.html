@@ -7,9 +7,9 @@
 <h2><a href="{% for _ in range(depth) %}../{% endfor %}authors/{{ story.author.index }}.html">{{ story.author.name|escape }}</a>,
     {{ story.date.strftime('%Y-%m-%d %H:%M') }}</h2>
 <h3>
-	{% if story.prev %}<a href="">Previous ({{ story.prev.title|escape }})</a>{% endif %}
+	{% if story.prev %}<a href="{{ story.prev.index }}.html">Previous ({{ story.prev.title|escape }})</a>{% endif %}
 	{% if story.prev and story.next %}|{% endif %}
-	{% if story.next %}<a href="">Next ({{ story.next.title|escape }})</a>{% endif %}
+	{% if story.next %}<a href="{{ story.next.index }}.html">Next ({{ story.next.title|escape }})</a>{% endif %}
 </h3>
 <div>
 {{ story.text }}
