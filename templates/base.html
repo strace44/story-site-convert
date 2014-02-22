@@ -7,7 +7,8 @@
 <body>
 <div>
     <a href="{% for _ in range(depth) %}../{% endfor %}authors.html">Author List</a> |
-    <a href="{% for _ in range(depth) %}../{% endfor %}stories_all.html">All Stories</a>
+    <a href="{% for _ in range(depth) %}../{% endfor %}stories_all_date.html">All Stories by Date</a> |
+    <a href="{% for _ in range(depth) %}../{% endfor %}stories_all_title.html">All Stories by Title</a>
 </div>
 {% block body %}
 {% endblock %}

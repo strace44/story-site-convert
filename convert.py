@@ -240,9 +240,10 @@ class StoryRenderer:
         stories = []
         for author in self.story_data.values():
             stories.extend(author.stories)
-        stories.sort(key=attrgetter('date'))
-        with open(ospj(OUTPUT_DIR, filename), 'w') as f:
-            print(template.render(stories=stories, depth=0), file=f)
+        with open(ospj(OUTPUT_DIR, 'stories_all_date.html'), 'w') as f:
+            print(template.render(stories=sorted(stories, key=attrgetter('date')), depth=0), file=f)
+        with open(ospj(OUTPUT_DIR, 'stories_all_title.html'), 'w') as f:
+            print(template.render(stories=sorted(stories, key=attrgetter('title')), depth=0), file=f)
 
     def render_story_list_by_author(self, author):
         subdir = ospj(OUTPUT_DIR, 'authors')
