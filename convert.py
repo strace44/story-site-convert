@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from argparse import ArgumentParser
 from datetime import datetime
 from operator import attrgetter
@@ -176,7 +176,6 @@ def parse_comments(comments_div_node):
         # stack[1:]. If the current comment has depth 0, it by definition
         # has no parent and the entire stack should be discarded.
         del stack[comment.depth:]
-        stack.append(comment)
         if comment.depth:
             # Now, the last element in the stack should be the parent of
             # this comment, or (equivalently) we should assign this as a
@@ -187,6 +186,7 @@ def parse_comments(comments_div_node):
         else:
             # depth = 0 implies that it's a top-level comment
             top_level_comments.append(comment)
+        stack.append(comment)
     return top_level_comments
 
 def parse_story_file(filename):
