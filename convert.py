@@ -30,6 +30,17 @@ class AuthorDict(dict):
         author = self[author_name] = Author(author_name)
         return author
 
+class Comment:
+    def __init__(self, author, text):
+        """
+        @param author: either a str or an Author object
+        @param text: str of comment text
+        """
+        self.author = author
+        self.text = text
+        # List of Comment objects
+        self.children = []
+
 class Story:
     def __init__(self, text, title, author_name, date):
         self.text = text
@@ -106,6 +117,10 @@ def tolerant_decode(story_data):
         fixed_letter_a_grave)
     return surrogate_decoded
 
+def parse_comments(comments_div_node):
+    comments = []
+    return comments
+
 def parse_story_file(filename):
     print('Parsing {}'.format(filename))
     with open(filename, 'rb') as f:
@@ -118,6 +133,9 @@ def parse_story_file(filename):
     story_text = '\n'.join(str(p) for p in story_paragraphs)
     title = s.find('h2', {'class': 'title'}).text
     raw_author_data = s.find('div', {'class': 'nodeCredits'}).text
+    comments_parent = s.findAll('form', {'action': '?q=comment'})
+    if len(comments_parent) > 1:
+        comments = parse_comments(comments_parent[1].find('div'))
     m = AUTHOR_INFO.match(raw_author_data)
     if m:
         author_name = m.group('name')
