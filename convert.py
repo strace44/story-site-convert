@@ -18,6 +18,12 @@ OUTPUT_DIR = 'output'
 AUTHOR_INFO = re.compile(r'(?P<name>\w+) \| (?P<month>\d{2})/(?P<day>\d{2})/'
     r'(?P<year>\d{4}) - (?P<hour>\d{2}):(?P<minute>\d{2})')
 AUTHOR_DATE_FIELDS = ['year', 'month', 'day', 'hour', 'minute']
+INTEGER_PATTERN = re.compile(r'(\d+)')
+
+def find_integer(string):
+    s = INTEGER_PATTERN.search(string)
+    if s:
+        return int(s.group(1))
 
 class Author:
     def __init__(self, name):
@@ -31,15 +37,19 @@ class AuthorDict(dict):
         return author
 
 class Comment:
-    def __init__(self, author, text):
-        """
-        @param author: either a str or an Author object
-        @param text: str of comment text
-        """
-        self.author = author
+    def __init__(self, text, title, author_name, date):
+        self.author_name = author_name
+        self.author = None
         self.text = text
+        self.title = title
+        self.date = date
+        self.depth = 0
         # List of Comment objects
         self.children = []
+
+    def __repr__(self):
+        return '<{} {}: "{}", {}, depth {}>'.format(self.__class__.__name__,
+            self.author_name, self.title, self.date, self.depth)
 
 class Story:
     def __init__(self, text, title, author_name, date):
@@ -53,6 +63,7 @@ class Story:
         # Story objects to support prev/next links in templates
         self.prev = None
         self.next = None
+        self.comments = None
 
     def __repr__(self):
         return '<{} {}: "{}", {}>'.format(self.__class__.__name__,
@@ -117,9 +128,66 @@ def tolerant_decode(story_data):
         fixed_letter_a_grave)
     return surrogate_decoded
 
+def get_comment(hr_node):
+    author_info_node = hr_node.nextSibling
+    title = author_info_node.nextSibling.text
+    m = AUTHOR_INFO.search(author_info_node)
+    if not m:
+        raise ValueError("Couldn't decode author/date of comment '{}'".format(author_info_node))
+    author_name = m.group('name')
+    date_data = [int(m.group(field)) for field in AUTHOR_DATE_FIELDS]
+    date = datetime(*date_data)
+    # Comment text seems to always be in <p> tags after the second <br/> of this div
+    # node, and continues until another <br/>. Grab the second <br/> and append
+    # successive nodes until finding another <br/>.
+    comment_contents = []
+    second_br = hr_node.parent.findAll('br')[1]
+    node = second_br.nextSibling
+    while node is not None and node.name != 'br':
+        if node.name is not None:
+            comment_contents.append(node)
+        node = node.nextSibling
+    text = '\n'.join(str(c) for c in comment_contents)
+    depth = 0
+    if 'style' in hr_node.parent.attrs:
+        margin_px = find_integer(hr_node.parent.attrs['style'])
+        depth = margin_px // 25
+    c = Comment(text, title, author_name, date)
+    c.depth = depth
+    return c
+
 def parse_comments(comments_div_node):
-    comments = []
-    return comments
+    comments = [get_comment(node) for node in comments_div_node.findAll('hr')]
+    # Using a list (instead of a collections.deque) as a stack here is okay since
+    # we're only ever going to append and pop from the end
+    stack = []
+    top_level_comments = []
+    for comment in comments:
+        # Discard anything in the stack with a depth greater than
+        # the current comment's. If we had the following depths:
+
+        # 0
+        #   1
+        #   1
+        #      2
+
+        # and the current comment has depth 1, it's a child of the
+        # most recent comment with depth 0 and we should discard
+        # stack[1:]. If the current comment has depth 0, it by definition
+        # has no parent and the entire stack should be discarded.
+        del stack[comment.depth:]
+        stack.append(comment)
+        if comment.depth:
+            # Now, the last element in the stack should be the parent of
+            # this comment, or (equivalently) we should assign this as a
+            # child of the last element. It's an error for the stack to
+            # be empty if the current comment's depth is 0, though
+            assert stack, 'empty stack with depth > 0'
+            stack[-1].children.append(comment)
+        else:
+            # depth = 0 implies that it's a top-level comment
+            top_level_comments.append(comment)
+    return top_level_comments
 
 def parse_story_file(filename):
     print('Parsing {}'.format(filename))
@@ -136,12 +204,16 @@ def parse_story_file(filename):
     comments_parent = s.findAll('form', {'action': '?q=comment'})
     if len(comments_parent) > 1:
         comments = parse_comments(comments_parent[1].find('div'))
+    else:
+        comments = []
     m = AUTHOR_INFO.match(raw_author_data)
     if m:
         author_name = m.group('name')
         date_data = [int(m.group(field)) for field in AUTHOR_DATE_FIELDS]
         date = datetime(*date_data)
-        return Story(story_text, title, author_name, date)
+        story = Story(story_text, title, author_name, date)
+        story.comments = comments
+        return story
 
 def get_stories(directory):
     for html_file in find_html_files(directory):
