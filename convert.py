@@ -19,6 +19,7 @@ AUTHOR_INFO = re.compile(r'(?P<name>.+?) \| (?P<month>\d{2})/(?P<day>\d{2})/'
     r'(?P<year>\d{4}) - (?P<hour>\d{2}):(?P<minute>\d{2})')
 AUTHOR_DATE_FIELDS = ['year', 'month', 'day', 'hour', 'minute']
 INTEGER_PATTERN = re.compile(r'(\d+)')
+WHITESPACE = re.compile(r'\s+')
 
 def find_integer(string):
     s = INTEGER_PATTERN.search(string)
@@ -197,6 +198,9 @@ def parse_comments(comments_div_node):
         stack.append(comment)
     return top_level_comments
 
+def normalize_title(title):
+    return WHITESPACE.sub(' ', title.strip())
+
 def parse_story_file(filename):
     print('Parsing {}'.format(filename))
     with open(filename, 'rb') as f:
@@ -207,7 +211,7 @@ def parse_story_file(filename):
     # the first p element inside here is the actual story text.
     story_paragraphs = s.find('div', {'class': 'nodeContents'}).find_all('p')[:-1]
     story_text = '\n'.join(str(p).strip() for p in story_paragraphs)
-    title = s.find('h2', {'class': 'title'}).text.strip()
+    title = normalize_title(s.find('h2', {'class': 'title'}).text)
     raw_author_data = s.find('div', {'class': 'nodeCredits'}).text.strip()
     comments_parent = s.findAll('form', {'action': '?q=comment'})
     if len(comments_parent) > 1:
