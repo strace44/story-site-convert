@@ -126,8 +126,9 @@ def tolerant_decode(story_data):
     mapping of that byte.
     """
     raw_decoded = story_data.decode(errors='surrogateescape')
-    fixed_quotes = raw_decoded.replace('\udce2\udc80', '\u201d')
-    fixed_letter_a_grave = fixed_quotes.replace('\udcc3', '\xe0')
+    fixed_quotes_1 = raw_decoded.replace('\udce2\udc80?', '\u201d')
+    fixed_quotes_2 = fixed_quotes_1.replace('\udce2\udc80', '\u201d')
+    fixed_letter_a_grave = fixed_quotes_2.replace('\udcc3', '\xe0')
     # No other special cases: replace all surrogate escape chars with
     # their cp1252 interpretation
     surrogate_decoded = SURROGATE_ESCAPES.sub(surrogate_cp1252_replace,
