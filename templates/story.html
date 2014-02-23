@@ -14,6 +14,7 @@
 <div id="story">
 {{ story.text }}
 </div>
+{% if story.comments %}
 <h2>Comments</h2>
 <div id="comments">
 	{% for comment in story.comments recursive %}
@@ -33,6 +34,7 @@
 		</div>
 	{% endfor %}
 </div>
+{% endif %}
 {% if story.next %}
 	<h3><a href="{{ story.next.index }}.html">Next ({{ story.next.title|escape }})</a></h3>
 {% endif %}
