@@ -270,6 +270,7 @@ def assign_comments(story_data, entry):
     for comment in entry.comments:
         if comment.author_name in story_data:
             comment.author = story_data[comment.author_name]
+        assign_comments(story_data, comment)
 
 def convert_html_files(directory):
     """
@@ -285,7 +286,7 @@ def convert_html_files(directory):
         story_data[story.author_name].stories.append(story)
         story.author = story_data[story.author_name]
     for j, author_name in enumerate(sorted(story_data, key=lambda s: s.lower())):
-        story_data[author].index = j
+        story_data[author_name].index = j
         # Assign prev/next as appropriate
         # TODO generalize this to avoid len == 2 vs. len > 2
         s = sorted(story_data[author_name].stories, key=attrgetter('date'))

@@ -17,16 +17,18 @@
 <h2>Comments</h2>
 <div id="comments">
 	{% for comment in story.comments recursive %}
-		<div style="margin-left: {{ comment.depth * 25 }}px;">
+		<div style="margin-left: 25px;">
 		<h3>{{ comment.title }}</h3>
 		<div>
 			{% if comment.author %}
-				<a href="{% for _ in range(depth) %}../{% endfor %}authors/{{ comment.author.index }}.html">{{ comment.author.name|escape }}</a>
+				<a href="{% for _ in range(depth) %}../{% endfor %}authors/{{ comment.author.index }}.html">{{ comment.author.name|escape }}</a>,
 			{% else %}
-				{{ comment.author_name }}
+				{{ comment.author_name }},
 			{% endif %}
 			{{ comment.date.strftime('%Y-%m-%d %H:%M') }}</div>
-			{{ comment.text }}
+			<div class="comment_text">
+				{{ comment.text }}
+			</div>
 			{{ loop(comment.comments) }}
 		</div>
 	{% endfor %}
