@@ -15,7 +15,7 @@ import jinja2
 PICKLE_FILENAME = 'stories.pickle'
 OUTPUT_DIR = 'output'
 
-AUTHOR_INFO = re.compile(r'(?P<name>\w+) \| (?P<month>\d{2})/(?P<day>\d{2})/'
+AUTHOR_INFO = re.compile(r'(?P<name>.+?) \| (?P<month>\d{2})/(?P<day>\d{2})/'
     r'(?P<year>\d{4}) - (?P<hour>\d{2}):(?P<minute>\d{2})')
 AUTHOR_DATE_FIELDS = ['year', 'month', 'day', 'hour', 'minute']
 INTEGER_PATTERN = re.compile(r'(\d+)')
@@ -45,7 +45,11 @@ class Comment:
         self.date = date
         self.depth = 0
         # List of Comment objects
-        self.children = []
+        # Was called 'children' but calling this 'comments' makes it
+        # easier to recurse in the templates. This name makes sense
+        # as well since comments can be in response to other comments
+        # in addition to the story
+        self.comments = []
 
     def __repr__(self):
         return '<{} {}: "{}", {}, depth {}>'.format(self.__class__.__name__,
@@ -131,7 +135,7 @@ def tolerant_decode(story_data):
 def get_comment(hr_node):
     author_info_node = hr_node.nextSibling
     title = author_info_node.nextSibling.text
-    m = AUTHOR_INFO.search(author_info_node)
+    m = AUTHOR_INFO.search(str(author_info_node).strip())
     if not m:
         raise ValueError("Couldn't decode author/date of comment '{}'".format(author_info_node))
     author_name = m.group('name')
@@ -178,11 +182,11 @@ def parse_comments(comments_div_node):
         del stack[comment.depth:]
         if comment.depth:
             # Now, the last element in the stack should be the parent of
-            # this comment, or (equivalently) we should assign this as a
-            # child of the last element. It's an error for the stack to
-            # be empty if the current comment's depth is 0, though
+            # this comment, so we should assign this as a  child of the
+            # last element. It's an error for the stack to be empty if
+            # the current comment's depth is nonzero, though
             assert stack, 'empty stack with depth > 0'
-            stack[-1].children.append(comment)
+            stack[-1].comments.append(comment)
         else:
             # depth = 0 implies that it's a top-level comment
             top_level_comments.append(comment)
@@ -198,9 +202,9 @@ def parse_story_file(filename):
     # The first div with class nodeContents contains the story;
     # the first p element inside here is the actual story text.
     story_paragraphs = s.find('div', {'class': 'nodeContents'}).find_all('p')[:-1]
-    story_text = '\n'.join(str(p) for p in story_paragraphs)
-    title = s.find('h2', {'class': 'title'}).text
-    raw_author_data = s.find('div', {'class': 'nodeCredits'}).text
+    story_text = '\n'.join(str(p).strip() for p in story_paragraphs)
+    title = s.find('h2', {'class': 'title'}).text.strip()
+    raw_author_data = s.find('div', {'class': 'nodeCredits'}).text.strip()
     comments_parent = s.findAll('form', {'action': '?q=comment'})
     if len(comments_parent) > 1:
         comments = parse_comments(comments_parent[1].find('div'))
@@ -262,6 +266,11 @@ class StoryRenderer:
         with open(ospj(subdir, filename), 'w') as f:
             print(template.render(story=story, depth=2), file=f)
 
+def assign_comments(story_data, entry):
+    for comment in entry.comments:
+        if comment.author_name in story_data:
+            comment.author = story_data[comment.author_name]
+
 def convert_html_files(directory):
     """
     Parses HTML files found in 'directory', populating
@@ -275,11 +284,11 @@ def convert_html_files(directory):
         story.index = i
         story_data[story.author_name].stories.append(story)
         story.author = story_data[story.author_name]
-    for j, author in enumerate(sorted(story_data, key=lambda s: s.lower())):
+    for j, author_name in enumerate(sorted(story_data, key=lambda s: s.lower())):
         story_data[author].index = j
         # Assign prev/next as appropriate
         # TODO generalize this to avoid len == 2 vs. len > 2
-        s = sorted(story_data[author].stories, key=attrgetter('date'))
+        s = sorted(story_data[author_name].stories, key=attrgetter('date'))
         if len(s) >= 2:
             s[0].next = s[1]
             s[-1].prev = s[-2]
@@ -287,6 +296,9 @@ def convert_html_files(directory):
                 for prev, cur, next in zip(s[:-2], s[1:-1], s[2:]):
                     cur.prev = prev
                     cur.next = next
+    for j, author in enumerate(story_data.values()):
+        for story in author.stories:
+            assign_comments(story_data, story)
     print('Parsed {} stories by {} authors'.format(i + 1, j + 1))
     return story_data
 

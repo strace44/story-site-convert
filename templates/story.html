@@ -11,8 +11,25 @@
 	{% if story.prev and story.next %}|{% endif %}
 	{% if story.next %}<a href="{{ story.next.index }}.html">Next ({{ story.next.title|escape }})</a>{% endif %}
 </h3>
-<div>
+<div id="story">
 {{ story.text }}
+</div>
+<h2>Comments</h2>
+<div id="comments">
+	{% for comment in story.comments recursive %}
+		<div style="margin-left: {{ comment.depth * 25 }}px;">
+		<h3>{{ comment.title }}</h3>
+		<div>
+			{% if comment.author %}
+				<a href="{% for _ in range(depth) %}../{% endfor %}authors/{{ comment.author.index }}.html">{{ comment.author.name|escape }}</a>
+			{% else %}
+				{{ comment.author_name }}
+			{% endif %}
+			{{ comment.date.strftime('%Y-%m-%d %H:%M') }}</div>
+			{{ comment.text }}
+			{{ loop(comment.comments) }}
+		</div>
+	{% endfor %}
 </div>
 {% if story.next %}
 	<h3><a href="{{ story.next.index }}.html">Next ({{ story.next.title|escape }})</a></h3>
