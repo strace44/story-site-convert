@@ -87,6 +87,8 @@ def looks_like_story_file(s):
     credits_nodes = s.find_all('div', {'class': 'nodeCredits'})
     if credits_nodes is None or len(credits_nodes) != 1:
         return False
+    if s.find_all('link', {'type': 'application/rss+xml'}):
+        return False
     if s.find_all('div', {'class': 'nodeTaxonomy'}):
         return False
     if s.find_all('div', {'class': 'poll'}):
