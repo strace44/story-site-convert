@@ -148,7 +148,7 @@ def get_comment(hr_node):
     # node, and continues until another <br/>. Grab the second <br/> and append
     # successive nodes until finding another <br/>.
     comment_contents = []
-    second_br = hr_node.parent.findAll('br')[1]
+    second_br = hr_node.findNextSiblings('br')[1]
     node = second_br.nextSibling
     while node is not None and node.name != 'br':
         if node.name is not None:
