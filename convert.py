@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from argparse import ArgumentParser
 from datetime import datetime
+from math import ceil, log10
 from operator import attrgetter
 from os import listdir, makedirs
 from os.path import isfile, join as ospj
@@ -26,11 +27,26 @@ def find_integer(string):
     if s:
         return int(s.group(1))
 
+def is_valid_filesystem_char(char: str):
+    """
+    Preserve anything that's a letter, number or whitepsace. There are
+    many more valid characters than this, but I want to be conservative
+    so that these filenames work on Windows.
+    """
+    return unicodedata.category(char)[0] in {'L', 'N', 'Z'}
+
+def sanitize_for_filesystem(text: str):
+    underscores_removed = text.replace('_', ' ')
+    normalized = unicodedata.normalize('NFKC', underscores_removed)
+    filtered = ''.join(filter(is_valid_filesystem_char, normalized)).strip()
+    return WHITESPACE.sub('_', filtered)
+
 class Author:
     def __init__(self, name):
         self.name = name
         self.stories = []
-        self.index = None
+        # "Filesystem name"
+        self.fs_name = sanitize_for_filesystem(self.name)
 
 class AuthorDict(dict):
     def __missing__(self, author_name):
@@ -63,12 +79,12 @@ class Story:
         self.author_name = author_name
         self.date = date
         self.author = None
-        # Stand-in for a database PK
-        self.index = None
         # Story objects to support prev/next links in templates
         self.prev = None
         self.next = None
         self.comments = None
+        # "Filesystem name": assigned in bulk, once we know how many stories each author has
+        self.fs_name = None
 
     def __repr__(self):
         return '<{} {}: "{}", {}>'.format(self.__class__.__name__,
@@ -238,13 +254,13 @@ class StoryRenderer:
         self.story_data = story_data
         self.env = jinja2.Environment(loader=jinja2.FileSystemLoader('templates'),
             keep_trailing_newline=True)
-        self.sorted_authors = sorted(story_data.values(), key=attrgetter('index'))
+        self.sorted_authors = sorted(story_data.values(), key=attrgetter('name'))
 
     def render_author_list(self):
         filename = 'authors.html'
         template = self.env.get_template(filename)
         with open(ospj(OUTPUT_DIR, filename), 'w') as f:
-            print(template.render(authors=enumerate(self.sorted_authors), depth=0), file=f)
+            print(template.render(authors=self.sorted_authors, depth=0), file=f)
 
     def render_story_list_all(self):
         filename = 'stories_all.html'
@@ -260,16 +276,16 @@ class StoryRenderer:
     def render_story_list_by_author(self, author):
         subdir = ospj(OUTPUT_DIR, 'authors')
         makedirs(subdir, exist_ok=True)
-        filename = '{}.html'.format(author.index)
+        filename = '{}.html'.format(author.fs_name)
         template = self.env.get_template('stories_by_author.html')
         stories = sorted(author.stories, key=attrgetter('date'))
         with open(ospj(subdir, filename), 'w') as f:
             print(template.render(author=author, stories=stories, depth=1), file=f)
 
     def render_story(self, story):
-        subdir = ospj(OUTPUT_DIR, 'stories', str(story.author.index))
+        subdir = ospj(OUTPUT_DIR, 'stories', story.author.fs_name)
         makedirs(subdir, exist_ok=True)
-        filename = '{}.html'.format(story.index)
+        filename = '{}.html'.format(story.fs_name)
         template = self.env.get_template('story.html')
         with open(ospj(subdir, filename), 'w') as f:
             print(template.render(story=story, depth=2), file=f)
@@ -290,14 +306,15 @@ def convert_html_files(directory):
     story_data = AuthorDict()
     i = j = -1
     for i, story in enumerate(get_stories(directory)):
-        story.index = i
         story_data[story.author_name].stories.append(story)
         story.author = story_data[story.author_name]
-    for j, author_name in enumerate(sorted(story_data, key=lambda s: s.lower())):
-        story_data[author_name].index = j
+    for j, author_name in enumerate(sorted(story_data, key=str.lower)):
+        s = sorted(story_data[author_name].stories, key=attrgetter('date'))
+        digits = ceil(log10(len(s) + 1))
+        for k, story in enumerate(s, 1):
+            story.fs_name = '{:0{}}-{}'.format(k, digits, sanitize_for_filesystem(story.title))
         # Assign prev/next as appropriate
         # TODO generalize this to avoid len == 2 vs. len > 2
-        s = sorted(story_data[author_name].stories, key=attrgetter('date'))
         if len(s) >= 2:
             s[0].next = s[1]
             s[-1].prev = s[-2]

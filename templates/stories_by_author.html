@@ -8,7 +8,7 @@
     <tr><th>Title</th><th>Date</th></tr>
 {% for story in stories %}
     <tr>
-        <td><a href="../stories/{{ story.author.index }}/{{ story.index }}.html">{{ story.title|escape }}</a></td>
+        <td><a href="../stories/{{ story.author.fs_name }}/{{ story.fs_name }}.html">{{ story.title|escape }}</a></td>
         <td>{{ story.date.strftime('%Y-%m-%d %H:%M') }}</td>
     </tr>
 {% endfor %}

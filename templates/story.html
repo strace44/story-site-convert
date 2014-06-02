@@ -4,12 +4,12 @@
 
 {% block body %}
 <h1>{{ story.title|escape }}</h1>
-<h2><a href="{% for _ in range(depth) %}../{% endfor %}authors/{{ story.author.index }}.html">{{ story.author.name|escape }}</a>,
+<h2><a href="{% for _ in range(depth) %}../{% endfor %}authors/{{ story.author.fs_name }}.html">{{ story.author.name|escape }}</a>,
     {{ story.date.strftime('%Y-%m-%d %H:%M') }}</h2>
 <h3>
-	{% if story.prev %}<a href="{{ story.prev.index }}.html">Previous ({{ story.prev.title|escape }})</a>{% endif %}
+	{% if story.prev %}<a href="{{ story.prev.fs_name }}.html">Previous ({{ story.prev.title|escape }})</a>{% endif %}
 	{% if story.prev and story.next %}|{% endif %}
-	{% if story.next %}<a href="{{ story.next.index }}.html">Next ({{ story.next.title|escape }})</a>{% endif %}
+	{% if story.next %}<a href="{{ story.next.fs_name }}.html">Next ({{ story.next.title|escape }})</a>{% endif %}
 </h3>
 <div id="story">
 {{ story.text }}
@@ -22,7 +22,7 @@
 		<h3>{{ comment.title }}</h3>
 		<div>
 			{% if comment.author %}
-				<a href="{% for _ in range(depth) %}../{% endfor %}authors/{{ comment.author.index }}.html">{{ comment.author.name|escape }}</a>,
+				<a href="{% for _ in range(depth) %}../{% endfor %}authors/{{ comment.author.fs_name }}.html">{{ comment.author.name|escape }}</a>,
 			{% else %}
 				{{ comment.author_name }},
 			{% endif %}
@@ -36,6 +36,6 @@
 </div>
 {% endif %}
 {% if story.next %}
-	<h3><a href="{{ story.next.index }}.html">Next ({{ story.next.title|escape }})</a></h3>
+	<h3><a href="{{ story.next.fs_name }}.html">Next ({{ story.next.title|escape }})</a></h3>
 {% endif %}
 {% endblock %}

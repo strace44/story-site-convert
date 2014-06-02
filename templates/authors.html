@@ -4,8 +4,8 @@
 
 {% block body %}
 <ul>
-    {% for i, author in authors %}
-        <li><a href="authors/{{ i }}.html">{{ author.name|escape }}</a></li>
+    {% for author in authors %}
+        <li><a href="authors/{{ author.fs_name }}.html">{{ author.name|escape }}</a></li>
     {% endfor %}
 </ul>
 {% endblock %}
