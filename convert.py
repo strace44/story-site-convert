@@ -21,11 +21,30 @@ AUTHOR_INFO = re.compile(r'(?P<name>.+?) \| (?P<month>\d{2})/(?P<day>\d{2})/'
 AUTHOR_DATE_FIELDS = ['year', 'month', 'day', 'hour', 'minute']
 INTEGER_PATTERN = re.compile(r'(\d+)')
 WHITESPACE = re.compile(r'\s+')
+LEADING_NON_DIGITS = re.compile(r'^([^\d]+)')
 
 def find_integer(string):
     s = INTEGER_PATTERN.search(string)
     if s:
         return int(s.group(1))
+
+def story_title_sort_key(title):
+    """
+    Returns a 3-tuple sort key for story titles:
+
+    [0] is any leading non-digit characters
+    [1] is the first integer that can be parsed from the title, to make
+        80 sort before 9
+    [2] is the unchanged title, in case of a tie in the first two items
+    """
+    title = title.lower().strip()
+    maybe_leading_non_digits = LEADING_NON_DIGITS.search(title)
+    if maybe_leading_non_digits is None:
+        leading_non_digits = ''
+    else:
+        leading_non_digits = maybe_leading_non_digits.group(0)
+    integer = find_integer(title) or 0
+    return leading_non_digits, integer, title
 
 def is_valid_filesystem_char(char: str):
     """
@@ -47,6 +66,10 @@ class Author:
         self.stories = []
         # "Filesystem name"
         self.fs_name = sanitize_for_filesystem(self.name)
+
+    @property
+    def name_sort_key(self):
+        return self.name.lower()
 
 class AuthorDict(dict):
     def __missing__(self, author_name):
@@ -89,6 +112,18 @@ class Story:
     def __repr__(self):
         return '<{} {}: "{}", {}>'.format(self.__class__.__name__,
             self.author_name, self.title, self.date)
+
+    @property
+    def title_sort_key(self):
+        return story_title_sort_key(self.title)
+
+    @property
+    def date_sort_key(self):
+        """
+        Return a chronological sort key, used in ordering the list of
+        all stories. Fall back to the story title if dates are equal.
+        """
+        return self.date, self.title_sort_key
 
 HTML_FILE_EXTENSION = '.html'
 def find_html_files(directory):
@@ -254,7 +289,7 @@ class StoryRenderer:
         self.story_data = story_data
         self.env = jinja2.Environment(loader=jinja2.FileSystemLoader('templates'),
             keep_trailing_newline=True)
-        self.sorted_authors = sorted(story_data.values(), key=attrgetter('name'))
+        self.sorted_authors = sorted(story_data.values(), key=attrgetter('name_sort_key'))
 
     def render_author_list(self):
         filename = 'authors.html'
@@ -269,16 +304,16 @@ class StoryRenderer:
         for author in self.story_data.values():
             stories.extend(author.stories)
         with open(ospj(OUTPUT_DIR, 'stories_all_date.html'), 'w') as f:
-            print(template.render(stories=sorted(stories, key=attrgetter('date')), depth=0), file=f)
+            print(template.render(stories=sorted(stories, key=attrgetter('date_sort_key')), depth=0), file=f)
         with open(ospj(OUTPUT_DIR, 'stories_all_title.html'), 'w') as f:
-            print(template.render(stories=sorted(stories, key=attrgetter('title')), depth=0), file=f)
+            print(template.render(stories=sorted(stories, key=attrgetter('title_sort_key')), depth=0), file=f)
 
     def render_story_list_by_author(self, author):
         subdir = ospj(OUTPUT_DIR, 'authors')
         makedirs(subdir, exist_ok=True)
         filename = '{}.html'.format(author.fs_name)
         template = self.env.get_template('stories_by_author.html')
-        stories = sorted(author.stories, key=attrgetter('date'))
+        stories = sorted(author.stories, key=attrgetter('date_sort_key'))
         with open(ospj(subdir, filename), 'w') as f:
             print(template.render(author=author, stories=stories, depth=1), file=f)
 
